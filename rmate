@@ -1,0 +1,27 @@
+#!/usr/bin/ruby -wKU
+require 'socket'
+
+socket = TCPSocket.new('127.0.0.1', 25757)
+puts "Connect: ‘#{socket.readline.chomp}’"
+
+ARGV.each do |path|
+	size = File.size(path)
+	data = File.open(path, "rb") { |io| io.read(size) }
+
+	socket.puts "open"
+	socket.puts "display-name: #{Socket.gethostname}:#{path}"
+	socket.puts "data-on-save: yes"
+	socket.puts "re-activate: yes"
+	socket.puts "token: #{path}"
+	socket.puts "data: #{size}"
+	socket.write data
+	socket.puts ""
+end
+
+socket.puts "."
+
+while line = socket.readline.chomp
+	puts line
+end
+
+socket.close
