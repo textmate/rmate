@@ -5,18 +5,45 @@ require "fileutils"
 socket = TCPSocket.new('127.0.0.1', 25757)
 puts "Connect: ‘#{socket.readline.chomp}’"
 
-ARGV.each do |path|
-  size = File.size(path)
-  data = File.open(path, "rb") { |io| io.read(size) }
+class Command
+   def initialize(name)
+     @command   = name
+     @variables = {}
+     @data      = nil
+     @size      = nil
+   end
 
-  socket.puts "open"
-  socket.puts "display-name: #{Socket.gethostname}:#{path}"
-  socket.puts "data-on-save: yes"
-  socket.puts "re-activate: yes"
-  socket.puts "token: #{path}"
-  socket.puts "data: #{size}"
-  socket.write data
-  socket.puts
+   def []=(name, value)
+     @variables[name] = value
+   end
+
+   def read_file(path)
+     @size = File.size(path)
+     @data = File.open(path, "rb") { |io| io.read(@size) }
+   end
+
+   def send(socket)
+     socket.puts @command
+     @variables.each_pair do |name, value|
+       value = 'yes' if value === true
+       socket.puts "#{name}: #{value}"
+     end
+     if @data
+       socket.puts "data: #{@size}"
+       socket.puts @data
+     end
+     socket.puts
+   end
+end
+
+ARGV.each do |path|
+  cmd                 = Command.new("open")
+  cmd['display-name'] = "#{Socket.gethostname}:#{path}"
+  cmd['data-on-save'] = true
+  cmd['re-activate']  = true
+  cmd['token']        = path
+  cmd.read_file(path)
+  cmd.send(socket)
 end
 
 socket.puts "."
