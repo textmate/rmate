@@ -1,27 +1,60 @@
 #!/usr/bin/ruby -wKU
 require 'socket'
+require "fileutils"
 
 socket = TCPSocket.new('127.0.0.1', 25757)
 puts "Connect: ‘#{socket.readline.chomp}’"
 
 ARGV.each do |path|
-	size = File.size(path)
-	data = File.open(path, "rb") { |io| io.read(size) }
+   size = File.size(path)
+   data = File.open(path, "rb") { |io| io.read(size) }
 
-	socket.puts "open"
-	socket.puts "display-name: #{Socket.gethostname}:#{path}"
-	socket.puts "data-on-save: yes"
-	socket.puts "re-activate: yes"
-	socket.puts "token: #{path}"
-	socket.puts "data: #{size}"
-	socket.write data
-	socket.puts ""
+   socket.puts "open"
+   socket.puts "display-name: #{Socket.gethostname}:#{path}"
+   socket.puts "data-on-save: yes"
+   socket.puts "re-activate: yes"
+   socket.puts "token: #{path}"
+   socket.puts "data: #{size}"
+   socket.write data
+   socket.puts ""
 end
 
 socket.puts "."
 
-while line = socket.readline.chomp
-	puts line
+def handle_save(socket, variables, data)
+	 puts "Saving"
+	 path = variables["token"]
+	 if FileUtils.mv(path, "#{path}~")
+			File.open(path, 'w') { |file| file << data }
+	 end
+end
+
+def handle_close(socket, variables, data)
+	 puts "Closing"
+end
+
+def handle_cmd(socket)
+	 cmd = socket.readline.chomp
+
+	 variables = {}
+	 data = ""
+
+	 while line = socket.readline.chomp
+			break if line.empty?
+			name, value     = line.split(': ', 2)
+			variables[name] = value
+			data << socket.read(value.to_i) if name == "data"
+	 end
+	 variables.delete("data")
+
+	 case cmd
+	 when "save":	  handle_save(socket, variables, data)
+	 when "close":	handle_close(socket, variables, data)
+	 end
+end
+
+while !socket.eof?
+	 handle_cmd(socket)
 end
 
 socket.close
