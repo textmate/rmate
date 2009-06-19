@@ -49,15 +49,16 @@ end
 socket.puts "."
 
 def handle_save(socket, variables, data)
-  puts "Saving"
   path = variables["token"]
+  $stderr.puts "Saving #{path}"
   if FileUtils.mv(path, "#{path}~")
     File.open(path, 'w') { |file| file << data }
   end
 end
 
 def handle_close(socket, variables, data)
-  puts "Closing"
+  path = variables["token"]
+  $stderr.puts "Closed #{path}"
 end
 
 def handle_cmd(socket)
@@ -84,3 +85,5 @@ end
 handle_cmd(socket) while !socket.eof?
 
 socket.close
+
+$stderr.puts "Done"
