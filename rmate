@@ -51,7 +51,7 @@ socket.puts "."
 def handle_save(socket, variables, data)
   path = variables["token"]
   $stderr.puts "Saving #{path}"
-  if FileUtils.mv(path, "#{path}~")
+  if FileUtils.cp(path, "#{path}~")
     File.open(path, 'w') { |file| file << data }
   end
 end
