@@ -51,8 +51,12 @@ socket.puts "."
 def handle_save(socket, variables, data)
   path = variables["token"]
   $stderr.puts "Saving #{path}"
-  if FileUtils.cp(path, "#{path}~")
+  begin
+    FileUtils.cp(path, "#{path}~")
     File.open(path, 'w') { |file| file << data }
+  rescue
+    # TODO We probably want some way to notify the server app that the save failed
+    $stderr.puts "Save failed! #{$!}"
   end
 end
 
