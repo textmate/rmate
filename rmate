@@ -42,7 +42,8 @@ ARGV.each do |path|
   cmd['data-on-save'] = true
   cmd['re-activate']  = true
   cmd['token']        = path
-  cmd.read_file(path)
+  cmd.read_file(path)               if File.exist? path
+  cmd['data']         = "0"     unless File.exist? path
   cmd.send(socket)
 end
 
