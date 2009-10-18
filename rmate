@@ -53,8 +53,9 @@ def handle_save(socket, variables, data)
   path = variables["token"]
   $stderr.puts "Saving #{path}"
   begin
-    FileUtils.cp(path, "#{path}~")
+    FileUtils.cp(path, "#{path}~") if File.exist? path
     File.open(path, 'w') { |file| file << data }
+    File.unlink("#{path}~")        if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
     $stderr.puts "Save failed! #{$!}"
