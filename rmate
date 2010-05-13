@@ -82,8 +82,8 @@ def handle_cmd(socket)
   variables.delete("data")
 
   case cmd
-  when "save":	handle_save(socket, variables, data)
-  when "close":	handle_close(socket, variables, data)
+  when "save"   then handle_save(socket, variables, data)
+  when "close"  then handle_close(socket, variables, data)
   else          abort "Received unknown command “#{cmd}”, exiting."
   end
 end
