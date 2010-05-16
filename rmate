@@ -2,7 +2,13 @@
 require 'socket'
 require "fileutils"
 
-socket = TCPSocket.new('127.0.0.1', 25757)
+host, port = '127.0.0.1', 25757
+
+if conn = ENV['SSH_CONNECTION']
+  host = conn.split(' ').first 
+end
+
+socket = TCPSocket.new(host, port)
 puts "Connect: ‘#{socket.readline.chomp}’"
 
 class Command
