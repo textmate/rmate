@@ -2,7 +2,7 @@
 require 'socket'
 require "fileutils"
 
-host, port = '127.0.0.1', 25757
+host, port = '127.0.0.1', 52698
 
 if conn = ENV['SSH_CONNECTION']
   host = conn.split(' ').first 
