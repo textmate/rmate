@@ -45,6 +45,7 @@ end
 ARGV.each do |path|
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
+  cmd['real-path']    = File.expand_path(path)
   cmd['data-on-save'] = true
   cmd['re-activate']  = true
   cmd['token']        = path
