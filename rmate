@@ -1,6 +1,16 @@
 #!/usr/bin/ruby -wKU
+require 'optparse'
 require 'socket'
 require "fileutils"
+
+force = false
+OptionParser.new do |o|
+  o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
+    force = b
+  end
+  o.parse!
+end
+    
 
 host, port = '127.0.0.1', 52698
 
@@ -43,6 +53,8 @@ class Command
 end
 
 ARGV.each do |path|
+  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
+  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
   cmd['real-path']    = File.expand_path(path)
