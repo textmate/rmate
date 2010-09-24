@@ -3,29 +3,6 @@ require 'optparse'
 require 'socket'
 require "fileutils"
 
-$verbose = false
-force = false
-OptionParser.new do |o|
-  o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
-    force = b
-  end
-  o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
-    $verbose = v
-  end
-  o.parse!
-end
-    
-
-host, port = '127.0.0.1', 52698
-
-if conn = ENV['SSH_CONNECTION']
-  host = conn.split(' ').first 
-end
-
-socket = TCPSocket.new(host, port)
-server_info = socket.readline.chomp
-$stderr.puts "Connect: ‘#{server_info}’" if $verbose
-
 class Command
    def initialize(name)
      @command   = name
@@ -56,22 +33,6 @@ class Command
      socket.puts
    end
 end
-
-ARGV.each do |path|
-  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
-  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and $verbose
-  cmd                 = Command.new("open")
-  cmd['display-name'] = "#{Socket.gethostname}:#{path}"
-  cmd['real-path']    = File.expand_path(path)
-  cmd['data-on-save'] = true
-  cmd['re-activate']  = true
-  cmd['token']        = path
-  cmd.read_file(path)               if File.exist? path
-  cmd['data']         = "0"     unless File.exist? path
-  cmd.send(socket)
-end
-
-socket.puts "."
 
 def handle_save(socket, variables, data)
   path = variables["token"]
@@ -111,6 +72,47 @@ def handle_cmd(socket)
   else          abort "Received unknown command “#{cmd}”, exiting."
   end
 end
+
+## MAIN
+
+$verbose = false
+force = false
+OptionParser.new do |o|
+  o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
+    force = b
+  end
+  o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
+    $verbose = v
+  end
+  o.parse!
+end
+    
+
+host, port = '127.0.0.1', 52698
+
+if conn = ENV['SSH_CONNECTION']
+  host = conn.split(' ').first 
+end
+
+socket = TCPSocket.new(host, port)
+server_info = socket.readline.chomp
+$stderr.puts "Connect: ‘#{server_info}’" if $verbose
+
+ARGV.each do |path|
+  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
+  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and $verbose
+  cmd                 = Command.new("open")
+  cmd['display-name'] = "#{Socket.gethostname}:#{path}"
+  cmd['real-path']    = File.expand_path(path)
+  cmd['data-on-save'] = true
+  cmd['re-activate']  = true
+  cmd['token']        = path
+  cmd.read_file(path)               if File.exist? path
+  cmd['data']         = "0"     unless File.exist? path
+  cmd.send(socket)
+end
+
+socket.puts "."
 
 handle_cmd(socket) while !socket.eof?
 
