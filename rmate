@@ -96,7 +96,7 @@ end
 ## Parse arguments.
 cmds = []
 ARGV.each do |path|
-  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
+  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path or not File.exists? path
   $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and $verbose
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
