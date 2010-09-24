@@ -73,8 +73,22 @@ def handle_cmd(socket)
   end
 end
 
+def connect_and_handle_cmds(host, port, cmds)
+  socket = TCPSocket.new(host, port)
+  server_info = socket.readline.chomp
+  $stderr.puts "Connect: ‘#{server_info}’" if $verbose
+
+  cmds.each { |cmd| cmd.send(socket) }
+
+  socket.puts "."
+  handle_cmd(socket) while !socket.eof?
+  socket.close
+  $stderr.puts "Done" if $verbose
+end
+
 ## MAIN
 
+wait = false
 $verbose = false
 force = false
 OptionParser.new do |o|
@@ -83,6 +97,9 @@ OptionParser.new do |o|
   end
   o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
     $verbose = v
+  end
+  o.on('-w', '--wait', 'Wait for file to be closed by TextMate.') do |w|
+    wait = w
   end
   o.parse!
 end
@@ -109,19 +126,13 @@ ARGV.each do |path|
   cmds << cmd
 end
 
-# Now go detach and connect to the server.
-pid = fork do
-  socket = TCPSocket.new(host, port)
-  server_info = socket.readline.chomp
-  $stderr.puts "Connect: ‘#{server_info}’" if $verbose
-
-  cmds.each { |cmd| cmd.send(socket) }
-
-  socket.puts "."
-  handle_cmd(socket) while !socket.eof?
-  socket.close
-  $stderr.puts "Done" if $verbose
+unless wait
+  pid = fork do
+    connect_and_handle_cmds(host, port, cmds)
+  end
+  Process.detach(pid)
+else
+  connect_and_handle_cmds(host, port, cmds)
 end
 
-Process.detach(pid)
 
