@@ -3,10 +3,14 @@ require 'optparse'
 require 'socket'
 require "fileutils"
 
+$verbose = false
 force = false
 OptionParser.new do |o|
   o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
     force = b
+  end
+  o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
+    $verbose = v
   end
   o.parse!
 end
@@ -19,7 +23,8 @@ if conn = ENV['SSH_CONNECTION']
 end
 
 socket = TCPSocket.new(host, port)
-puts "Connect: ‘#{socket.readline.chomp}’"
+server_info = socket.readline.chomp
+$stderr.puts "Connect: ‘#{server_info}’" if $verbose
 
 class Command
    def initialize(name)
@@ -54,7 +59,7 @@ end
 
 ARGV.each do |path|
   abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
-  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path
+  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and $verbose
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
   cmd['real-path']    = File.expand_path(path)
@@ -70,20 +75,20 @@ socket.puts "."
 
 def handle_save(socket, variables, data)
   path = variables["token"]
-  $stderr.puts "Saving #{path}"
+  $stderr.puts "Saving #{path}" if $verbose
   begin
     FileUtils.cp(path, "#{path}~") if File.exist? path
     File.open(path, 'w') { |file| file << data }
     File.unlink("#{path}~")        if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
-    $stderr.puts "Save failed! #{$!}"
+    $stderr.puts "Save failed! #{$!}" if $verbose
   end
 end
 
 def handle_close(socket, variables, data)
   path = variables["token"]
-  $stderr.puts "Closed #{path}"
+  $stderr.puts "Closed #{path}" if $verbose
 end
 
 def handle_cmd(socket)
@@ -111,4 +116,4 @@ handle_cmd(socket) while !socket.eof?
 
 socket.close
 
-$stderr.puts "Done"
+$stderr.puts "Done" if $verbose
