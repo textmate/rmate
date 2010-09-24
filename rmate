@@ -86,7 +86,6 @@ OptionParser.new do |o|
   end
   o.parse!
 end
-    
 
 host, port = '127.0.0.1', 52698
 
@@ -94,10 +93,8 @@ if conn = ENV['SSH_CONNECTION']
   host = conn.split(' ').first 
 end
 
-socket = TCPSocket.new(host, port)
-server_info = socket.readline.chomp
-$stderr.puts "Connect: ‘#{server_info}’" if $verbose
-
+## Parse arguments.
+cmds = []
 ARGV.each do |path|
   abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path
   $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and $verbose
@@ -109,13 +106,22 @@ ARGV.each do |path|
   cmd['token']        = path
   cmd.read_file(path)               if File.exist? path
   cmd['data']         = "0"     unless File.exist? path
-  cmd.send(socket)
+  cmds << cmd
 end
 
-socket.puts "."
+# Now go detach and connect to the server.
+pid = fork do
+  socket = TCPSocket.new(host, port)
+  server_info = socket.readline.chomp
+  $stderr.puts "Connect: ‘#{server_info}’" if $verbose
 
-handle_cmd(socket) while !socket.eof?
+  cmds.each { |cmd| cmd.send(socket) }
 
-socket.close
+  socket.puts "."
+  handle_cmd(socket) while !socket.eof?
+  socket.close
+  $stderr.puts "Done" if $verbose
+end
 
-$stderr.puts "Done" if $verbose
+Process.detach(pid)
+
