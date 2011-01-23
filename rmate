@@ -1,7 +1,9 @@
 #!/usr/bin/ruby -wKU
 require 'optparse'
 require 'socket'
-require "fileutils"
+require 'fileutils'
+
+VERSION_STRING = 'rmate version 1.2 (2011-01-23)'
 
 class Settings
   attr_accessor :host, :port, :wait, :force, :verbose
@@ -27,15 +29,13 @@ class Settings
 
   def parse_cli_options
     OptionParser.new do |o|
-      o.on('-w', '--wait', 'Wait for file to be closed by TextMate.') do |w|
-        @wait = w
-      end
-      o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
-        @force = b
-      end
-      o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
-        @verbose = v
-      end
+      o.on(           '--host=name',       "Connect to host. Defaults to #{@host}.")                   { |v| @host    = v }
+      o.on('-p',      '--port=#', Integer, "Port number to use for connection. Defaults to #{@port}.") { |v| @port    = v }
+      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                  { |v| @wait    = v }
+      o.on('-f',      '--force',           'Open even if the file is not writable.')                   { |v| @force   = v }
+      o.on('-v',      '--verbose',         'Verbose logging messages.')                                { |v| @verbose = v }
+      o.on_tail('-h', '--help',            'Show this message.')                                       { puts o; exit }
+      o.on_tail(      '--version',         'Show version.')                                            { puts VERSION_STRING; exit }
       o.parse!
     end
   end  
