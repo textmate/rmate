@@ -3,6 +3,44 @@ require 'optparse'
 require 'socket'
 require "fileutils"
 
+class Settings
+  attr_accessor :host, :port, :wait, :force, :verbose
+
+  def initialize
+    @host, @port = '127.0.0.1', 52698
+
+    if conn = ENV['SSH_CONNECTION']
+      @host = conn.split(' ').first
+    end
+
+    @wait    = false
+    @force   = false
+    @verbose = false
+
+    read_disk_settings
+    parse_cli_options
+  end
+
+  def read_disk_settings
+    # TODO
+  end
+
+  def parse_cli_options
+    OptionParser.new do |o|
+      o.on('-w', '--wait', 'Wait for file to be closed by TextMate.') do |w|
+        @wait = w
+      end
+      o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
+        @force = b
+      end
+      o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
+        @verbose = v
+      end
+      o.parse!
+    end
+  end  
+end
+
 class Command
    def initialize(name)
      @command   = name
@@ -36,20 +74,20 @@ end
 
 def handle_save(socket, variables, data)
   path = variables["token"]
-  $stderr.puts "Saving #{path}" if $verbose
+  $stderr.puts "Saving #{path}" if $settings.verbose
   begin
     FileUtils.cp(path, "#{path}~") if File.exist? path
     File.open(path, 'w') { |file| file << data }
     File.unlink("#{path}~")        if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
-    $stderr.puts "Save failed! #{$!}" if $verbose
+    $stderr.puts "Save failed! #{$!}" if $settings.verbose
   end
 end
 
 def handle_close(socket, variables, data)
   path = variables["token"]
-  $stderr.puts "Closed #{path}" if $verbose
+  $stderr.puts "Closed #{path}" if $settings.verbose
 end
 
 def handle_cmd(socket)
@@ -76,45 +114,25 @@ end
 def connect_and_handle_cmds(host, port, cmds)
   socket = TCPSocket.new(host, port)
   server_info = socket.readline.chomp
-  $stderr.puts "Connect: ‘#{server_info}’" if $verbose
+  $stderr.puts "Connect: ‘#{server_info}’" if $settings.verbose
 
   cmds.each { |cmd| cmd.send(socket) }
 
   socket.puts "."
   handle_cmd(socket) while !socket.eof?
   socket.close
-  $stderr.puts "Done" if $verbose
+  $stderr.puts "Done" if $settings.verbose
 end
 
 ## MAIN
 
-wait = false
-$verbose = false
-force = false
-OptionParser.new do |o|
-  o.on('-f', '--force', 'Open even if the file is not writable.') do |b|
-    force = b
-  end
-  o.on('-v', '--verbose', 'Verbose logging messages.') do |v|
-    $verbose = v
-  end
-  o.on('-w', '--wait', 'Wait for file to be closed by TextMate.') do |w|
-    wait = w
-  end
-  o.parse!
-end
-
-host, port = '127.0.0.1', 52698
-
-if conn = ENV['SSH_CONNECTION']
-  host = conn.split(' ').first 
-end
+$settings = Settings.new
 
 ## Parse arguments.
 cmds = []
 ARGV.each do |path|
-  abort "File #{path} is not writable! Use -f/--force to open anyway." unless force or File.writable? path or not File.exists? path
-  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $verbose
+  abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exists? path
+  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $settings.verbose
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
   cmd['real-path']    = File.expand_path(path)
@@ -126,13 +144,11 @@ ARGV.each do |path|
   cmds << cmd
 end
 
-unless wait
+unless $settings.wait
   pid = fork do
-    connect_and_handle_cmds(host, port, cmds)
+    connect_and_handle_cmds($settings.host, $settings.port, cmds)
   end
   Process.detach(pid)
 else
-  connect_and_handle_cmds(host, port, cmds)
+  connect_and_handle_cmds($settings.host, $settings.port, cmds)
 end
-
-
