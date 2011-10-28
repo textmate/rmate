@@ -37,8 +37,8 @@ class Settings
 
   def parse_cli_options
     OptionParser.new do |o|
-      o.on(           '--host=name',       "Connect to host. Use 'auto' to detect the host from SSH. Defaults to #{@host}.") { |v| @host    = v          }
-      o.on('-p',      '--port=#', Integer, "Port number to use for connection. Defaults to #{@port}.")                       { |v| @port    = v          }
+      o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
+      o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                       { |v| @port    = v          }
       o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                        { |v| @wait    = v          }
       o.on('-f',      '--force',           'Open even if the file is not writable.')                                         { |v| @force   = v          }
       o.on('-v',      '--verbose',         'Verbose logging messages.')                                                      { |v| @verbose = v          }
