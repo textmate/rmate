@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 # encoding: UTF-8
 
+$VERBOSE = true                         # -w
+$KCODE   = "U" if RUBY_VERSION < "1.9"  # -KU
+
 require 'optparse'
 require 'socket'
 require 'fileutils'
@@ -11,14 +14,14 @@ class Settings
   attr_accessor :host, :port, :wait, :force, :verbose
 
   def initialize
-    @host, @port = '127.0.0.1', 52698
-
-    if conn = ENV['SSH_CONNECTION']
-      @host = conn.split(' ').first
-    end
+    @host, @port = 'localhost', 52698
 
     @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
     @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
+
+    if @host == 'auto' and (conn = ENV['SSH_CONNECTION'])
+      @host = conn.split(' ').first
+    end
 
     @wait    = false
     @force   = false
@@ -34,16 +37,16 @@ class Settings
 
   def parse_cli_options
     OptionParser.new do |o|
-      o.on(           '--host=name',       "Connect to host. Defaults to #{@host}.")                   { |v| @host    = v }
-      o.on('-p',      '--port=#', Integer, "Port number to use for connection. Defaults to #{@port}.") { |v| @port    = v }
-      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                  { |v| @wait    = v }
-      o.on('-f',      '--force',           'Open even if the file is not writable.')                   { |v| @force   = v }
-      o.on('-v',      '--verbose',         'Verbose logging messages.')                                { |v| @verbose = v }
-      o.on_tail('-h', '--help',            'Show this message.')                                       { puts o; exit }
-      o.on_tail(      '--version',         'Show version.')                                            { puts VERSION_STRING; exit }
+      o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
+      o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                       { |v| @port    = v          }
+      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                        { |v| @wait    = v          }
+      o.on('-f',      '--force',           'Open even if the file is not writable.')                                         { |v| @force   = v          }
+      o.on('-v',      '--verbose',         'Verbose logging messages.')                                                      { |v| @verbose = v          }
+      o.on_tail('-h', '--help',            'Show this message.')                                                             { puts o; exit              }
+      o.on_tail(      '--version',         'Show version.')                                                                  { puts VERSION_STRING; exit }
       o.parse!
     end
-  end  
+  end
 end
 
 class Command
@@ -82,7 +85,7 @@ def handle_save(socket, variables, data)
   $stderr.puts "Saving #{path}" if $settings.verbose
   begin
     FileUtils.cp(path, "#{path}~") if File.exist? path
-    File.open(path, 'w') { |file| file << data }
+    File.open(path, 'wb') { |file| file << data }
     File.unlink("#{path}~")        if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
