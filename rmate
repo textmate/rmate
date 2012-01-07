@@ -7,6 +7,7 @@ $KCODE   = "U" if RUBY_VERSION < "1.9"  # -KU
 require 'optparse'
 require 'socket'
 require 'fileutils'
+require 'yaml'
 
 VERSION_STRING = 'rmate version 1.3 (2011-10-18)'
 
@@ -32,7 +33,14 @@ class Settings
   end
 
   def read_disk_settings
-    # TODO
+    [ "/etc/rmate.rc", "~/.rmate.rc"].each do |current_file|
+      file = File.expand_path current_file
+      if File.exist? file
+        params = YAML::load(File.open(file))
+        @host = params["host"] unless params["host"].nil?
+        @port = params["port"] unless params["port"].nil?
+      end
+    end
   end
 
   def parse_cli_options
