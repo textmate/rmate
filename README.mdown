@@ -2,6 +2,13 @@
 
 Learn more in this [MacroMates blog post](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog &raquo; mate and rmate").
 
+You can put config in files `/etc/rmate.rc` and/or `~/.rmate.rc` with:
+
+	host: localhost
+	port: 52698
+
+You can leave only one parameter.
+
 # General
 
 * [Bundle Styleguide](http://kb.textmate.org/bundle_styleguide) — _before you make changes_
