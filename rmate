@@ -6,7 +6,7 @@ $KCODE   = "U" if RUBY_VERSION < "1.9"  # -KU
 
 require 'optparse'
 require 'socket'
-require 'fileutils'
+require 'tempfile'
 
 VERSION_STRING = 'rmate version 1.3 (2011-10-18)'
 
@@ -84,8 +84,12 @@ def handle_save(socket, variables, data)
   path = variables["token"]
   $stderr.puts "Saving #{path}" if $settings.verbose
   begin
-    FileUtils.cp(path, "#{path}~") if File.exist? path
-    File.open(path, 'wb') { |file| file << data }
+    File.link(path, "#{path}~") if File.exist? path
+    Tempfile.open("rmate", File.dirname(path)) do |temp|
+      temp.close(false)
+      open(temp.path, 'wb') {|file| file << data }
+      File.rename(temp.path, path)
+    end
     File.unlink("#{path}~")        if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
