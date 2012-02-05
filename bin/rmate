@@ -9,8 +9,9 @@ require 'socket'
 require 'tempfile'
 require 'yaml'
 require 'fileutils'
+require 'rmate'
 
-VERSION_STRING = 'rmate version 1.5 (2012-09-19)'
+VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
 
 class Settings
   attr_accessor :host, :port, :wait, :force, :verbose, :lines, :names, :types
