@@ -95,10 +95,11 @@ def handle_save(socket, variables, data)
     File.link(path, "#{path}~") if File.exist? path
     Tempfile.open("rmate", File.dirname(path)) do |temp|
       temp.close(false)
+      File.chmod(File.stat(path).mode, temp.path) if File.exist? path
       open(temp.path, 'wb') {|file| file << data }
       File.rename(temp.path, path)
     end
-    File.unlink("#{path}~")        if File.exist? "#{path}~"
+    File.unlink("#{path}~") if File.exist? "#{path}~"
   rescue
     # TODO We probably want some way to notify the server app that the save failed
     $stderr.puts "Save failed! #{$!}" if $settings.verbose
