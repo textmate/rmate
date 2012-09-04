@@ -15,7 +15,7 @@ class Settings
   attr_accessor :host, :port, :wait, :force, :verbose
 
   def initialize
-    @host, @port = 'localhost', 52698
+    @host, @port = 'auto', 52698
 
     @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
     @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
@@ -29,6 +29,8 @@ class Settings
 
     if @host == 'auto' and (conn = ENV['SSH_CONNECTION'])
       @host = conn.split(' ').first
+    else
+      @host = 'localhost'
     end
   end
 
