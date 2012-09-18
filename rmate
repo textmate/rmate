@@ -9,29 +9,26 @@ require 'socket'
 require 'tempfile'
 require 'yaml'
 
-VERSION_STRING = 'rmate version 1.4 (2012-08-14)'
+VERSION_STRING = 'rmate version 1.5 (2012-09-19)'
 
 class Settings
   attr_accessor :host, :port, :wait, :force, :verbose
 
   def initialize
-    @host, @port = 'auto', 52698
-
-    @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
-    @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
+    @host, @port = 'localhost', 52698
 
     @wait    = false
     @force   = false
     @verbose = false
 
     read_disk_settings
+
+    @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
+    @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
+
     parse_cli_options
 
-    if @host == 'auto' and (conn = ENV['SSH_CONNECTION'])
-      @host = conn.split(' ').first
-    else
-      @host = 'localhost'
-    end
+    @host = parse_ssh_connection if @host == 'auto'
   end
 
   def read_disk_settings
@@ -48,14 +45,18 @@ class Settings
   def parse_cli_options
     OptionParser.new do |o|
       o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
-      o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                       { |v| @port    = v          }
-      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                        { |v| @wait    = v          }
-      o.on('-f',      '--force',           'Open even if the file is not writable.')                                         { |v| @force   = v          }
-      o.on('-v',      '--verbose',         'Verbose logging messages.')                                                      { |v| @verbose = v          }
-      o.on_tail('-h', '--help',            'Show this message.')                                                             { puts o; exit              }
-      o.on_tail(      '--version',         'Show version.')                                                                  { puts VERSION_STRING; exit }
+      o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port    = v          }
+      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait    = v          }
+      o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force   = v          }
+      o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose = v          }
+      o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
+      o.on_tail(      '--version',         'Show version.')                                                                        { puts VERSION_STRING; exit }
       o.parse!
     end
+  end
+
+  def parse_ssh_connection
+    ENV['SSH_CONNECTION'].nil? ? 'localhost' : ENV['SSH_CONNECTION'].split(' ').first
   end
 end
 
