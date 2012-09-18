@@ -1,31 +1,20 @@
-# Usage and Installation
+# rmate
 
-Learn more in this [MacroMates blog post](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog &raquo; mate and rmate").
+If you wish to activate TextMate from an ssh session you can do so by copying the `rmate` (ruby) script to the server you are logged into. The script will connect back to TextMate running on your Mac so you should setup an ssh tunnel (as your Mac is likely behind NAT):
 
-You can put config in files `/etc/rmate.rc` and/or `~/.rmate.rc` with:
+	ssh -R 52698:127.0.0.1:52698 «server»
 
-	host: localhost
+# Usage
+
+Call `rmate --help` for options. Default options can be set in `/etc/rmate.rc` or `~/.rmate.rc`, e.g.:
+
+	host: auto
 	port: 52698
 
-You can leave only one parameter.
+You can also set the `RMATE_HOST` and `RMATE_PORT` environment variables.
 
-# General
-
-* [Bundle Styleguide](http://kb.textmate.org/bundle_styleguide) — _before you make changes_
-* [Commit Styleguide](http://kb.textmate.org/commit_styleguide) — _before you send a pull request_
-* [Writing Bug Reports](http://kb.textmate.org/writing_bug_reports) — _before you report an issue_
+For more info see this [blog post about rmate](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog » mate and rmate").
 
 # Ports
 
 - [Bash](https://github.com/aurora/rmate) by Harald Lapp
-
-# License
-
-If not otherwise specified (see below), files in this repository fall under the following license:
-
-	Permission to copy, use, modify, sell and distribute this
-	software is granted. This software is provided "as is" without
-	express or implied warranty, and with no claim as to its
-	suitability for any purpose.
-
-An exception is made for files in readable text which contain their own license information, or files where an accompanying file exists (in the same directory) with a “-license” suffix added to the base-name name of the original file, and an extension of txt, html, or similar. For example “tidy” is accompanied by “tidy-license.txt”.
