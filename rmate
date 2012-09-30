@@ -100,7 +100,12 @@ def handle_save(socket, variables, data)
     File.link(path, backup_path) if File.exist? path
     Tempfile.open("rmate", File.dirname(path)) do |temp|
       temp.close(false)
-      File.chmod(File.stat(path).mode, temp.path) if File.exist? path
+      if File.exists?(path)
+        if stat = File.stat(path)
+          File.chown(stat.uid, stat.gid, temp.path)
+          File.chmod(stat.mode, temp.path)
+        end
+      end
       open(temp.path, 'wb') {|file| file << data }
       File.rename(temp.path, path)
     end
