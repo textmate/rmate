@@ -12,7 +12,7 @@ require 'yaml'
 VERSION_STRING = 'rmate version 1.5 (2012-09-19)'
 
 class Settings
-  attr_accessor :host, :port, :wait, :force, :verbose
+  attr_accessor :host, :port, :wait, :force, :verbose, :lines, :names, :types
 
   def initialize
     @host, @port = 'localhost', 52698
@@ -20,6 +20,9 @@ class Settings
     @wait    = false
     @force   = false
     @verbose = false
+    @lines   = []
+    @names   = []
+    @types   = []
 
     read_disk_settings
 
@@ -47,6 +50,9 @@ class Settings
       o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
       o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port    = v          }
       o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait    = v          }
+      o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines <<= v          }
+      o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names <<= v          }
+      o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types <<= v          }
       o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force   = v          }
       o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose = v          }
       o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
@@ -161,15 +167,19 @@ $settings = Settings.new
 
 ## Parse arguments.
 cmds = []
-ARGV.each do |path|
+ARGV.each_index do |idx|
+  path = ARGV[idx]
   abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exists? path
   $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $settings.verbose
   cmd                 = Command.new("open")
   cmd['display-name'] = "#{Socket.gethostname}:#{path}"
+  cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
   cmd['real-path']    = File.expand_path(path)
   cmd['data-on-save'] = true
   cmd['re-activate']  = true
   cmd['token']        = path
+  cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
+  cmd['file-type']    = $settings.types[idx] if $settings.types.length > idx
   cmd.read_file(path)               if File.exist? path
   cmd['data']         = "0"     unless File.exist? path
   cmds << cmd
