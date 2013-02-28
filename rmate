@@ -8,6 +8,7 @@ require 'optparse'
 require 'socket'
 require 'tempfile'
 require 'yaml'
+require 'fileutils'
 
 VERSION_STRING = 'rmate version 1.5 (2012-09-19)'
 
@@ -103,18 +104,8 @@ def handle_save(socket, variables, data)
   begin
     backup_path = "#{path}~"
     backup_path = "#{backup_path}~" while File.exists? backup_path
-    File.link(path, backup_path) if File.exist? path
-    Tempfile.open("rmate", File.dirname(path)) do |temp|
-      temp.close(false)
-      if File.exists?(path)
-        if stat = File.stat(path)
-          File.chown(stat.uid, stat.gid, temp.path)
-          File.chmod(stat.mode, temp.path)
-        end
-      end
-      open(temp.path, 'wb') {|file| file << data }
-      File.rename(temp.path, path)
-    end
+    FileUtils.cp(path, backup_path, :preserve => true) if File.exists?(path)
+    open(path, 'wb') { |file| file << data }
     File.unlink(backup_path) if File.exist? backup_path
   rescue
     # TODO We probably want some way to notify the server app that the save failed
