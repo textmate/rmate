@@ -2,15 +2,18 @@
 
 If you wish to activate TextMate from an ssh session you can do so by copying the `rmate` (ruby) script to the server you are logged into. The script will connect back to TextMate running on your Mac so you should setup an ssh tunnel (as your Mac is likely behind NAT):
 
-	ssh -R 52698:127.0.0.1:52698 «server»
+	ssh -R 52698:127.0.0.1:52698 user@server
 
 # Usage
 
+	rmate <file>
+
 Call `rmate --help` for options. Default options can be set in `/etc/rmate.rc` or `~/.rmate.rc`, e.g.:
 
-	host: auto
-	port: 52698
-
+```yaml
+host: auto # use 'localhost' with ssh tunnel
+port: 52698
+```
 You can also set the `RMATE_HOST` and `RMATE_PORT` environment variables.
 
 For more info see this [blog post about rmate](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog » mate and rmate").
