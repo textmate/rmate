@@ -4,6 +4,16 @@ If you wish to activate TextMate from an ssh session you can do so by copying th
 
 	ssh -R 52698:127.0.0.1:52698 user@example.org
 
+# Install
+
+You can install `rmate` via `gem`:
+
+	gem install rmate
+
+Updating to latest version can be done using:
+
+	gem update rmate
+
 # Usage
 
 	rmate [options] file
