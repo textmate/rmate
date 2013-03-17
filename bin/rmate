@@ -101,7 +101,7 @@ end
 
 def handle_save(socket, variables, data)
   path = variables["token"]
-  if File.writable? path
+  if File.writable?(path) || !File.exists?(path)
     $stderr.puts "Saving #{path}" if $settings.verbose
     begin
       backup_path = "#{path}~"
