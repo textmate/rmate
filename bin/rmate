@@ -9,183 +9,190 @@ require 'socket'
 require 'tempfile'
 require 'yaml'
 require 'fileutils'
-require 'rmate'
 
-VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
+module Rmate
+  DATE           = "2013-08-02"
+  VERSION        = "1.5.6"
+  VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
 
-class Settings
-  attr_accessor :host, :port, :wait, :force, :verbose, :lines, :names, :types
+  class Settings
+    attr_accessor :host, :port, :wait, :force, :verbose, :lines, :names, :types
 
-  def initialize
-    @host, @port = 'localhost', 52698
+    def initialize
+      @host, @port = 'localhost', 52698
 
-    @wait    = false
-    @force   = false
-    @verbose = false
-    @lines   = []
-    @names   = []
-    @types   = []
+      @wait    = false
+      @force   = false
+      @verbose = false
+      @lines   = []
+      @names   = []
+      @types   = []
 
-    read_disk_settings
+      read_disk_settings
 
-    @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
-    @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
+      @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
+      @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
 
-    parse_cli_options
+      parse_cli_options
 
-    @host = parse_ssh_connection if @host == 'auto'
-  end
+      @host = parse_ssh_connection if @host == 'auto'
+    end
 
-  def read_disk_settings
-    [ "/etc/rmate.rc", "~/.rmate.rc"].each do |current_file|
-      file = File.expand_path current_file
-      if File.exist? file
-        params = YAML::load(File.open(file))
-        @host = params["host"] unless params["host"].nil?
-        @port = params["port"] unless params["port"].nil?
+    def read_disk_settings
+      [ "/etc/rmate.rc", "~/.rmate.rc"].each do |current_file|
+        file = File.expand_path current_file
+        if File.exist? file
+          params = YAML::load(File.open(file))
+          @host = params["host"] unless params["host"].nil?
+          @port = params["port"] unless params["port"].nil?
+        end
       end
     end
-  end
 
-  def parse_cli_options
-    OptionParser.new do |o|
-      o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
-      o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port    = v          }
-      o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait    = v          }
-      o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines <<= v          }
-      o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names <<= v          }
-      o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types <<= v          }
-      o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force   = v          }
-      o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose = v          }
-      o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
-      o.on_tail(      '--version',         'Show version.')                                                                        { puts VERSION_STRING; exit }
-      o.parse!
+    def parse_cli_options
+      OptionParser.new do |o|
+        o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
+        o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port    = v          }
+        o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait    = v          }
+        o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines <<= v          }
+        o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names <<= v          }
+        o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types <<= v          }
+        o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force   = v          }
+        o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose = v          }
+        o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
+        o.on_tail(      '--version',         'Show version.')                                                                        { puts VERSION_STRING; exit }
+        o.parse!
+      end
+    end
+
+    def parse_ssh_connection
+      ENV['SSH_CONNECTION'].nil? ? 'localhost' : ENV['SSH_CONNECTION'].split(' ').first
     end
   end
 
-  def parse_ssh_connection
-    ENV['SSH_CONNECTION'].nil? ? 'localhost' : ENV['SSH_CONNECTION'].split(' ').first
+  class Command
+     def initialize(name)
+       @command   = name
+       @variables = {}
+       @data      = nil
+       @size      = nil
+     end
+
+     def []=(name, value)
+       @variables[name] = value
+     end
+
+     def read_file(path)
+       @size = File.size(path)
+       @data = File.open(path, "rb") { |io| io.read(@size) }
+     end
+
+     def send(socket)
+       socket.puts @command
+       @variables.each_pair do |name, value|
+         value = 'yes' if value === true
+         socket.puts "#{name}: #{value}"
+       end
+       if @data
+         socket.puts "data: #{@size}"
+         socket.puts @data
+       end
+       socket.puts
+     end
   end
-end
 
-class Command
-   def initialize(name)
-     @command   = name
-     @variables = {}
-     @data      = nil
-     @size      = nil
-   end
+  module_function
 
-   def []=(name, value)
-     @variables[name] = value
-   end
-
-   def read_file(path)
-     @size = File.size(path)
-     @data = File.open(path, "rb") { |io| io.read(@size) }
-   end
-
-   def send(socket)
-     socket.puts @command
-     @variables.each_pair do |name, value|
-       value = 'yes' if value === true
-       socket.puts "#{name}: #{value}"
-     end
-     if @data
-       socket.puts "data: #{@size}"
-       socket.puts @data
-     end
-     socket.puts
-   end
-end
-
-def handle_save(socket, variables, data)
-  path = variables["token"]
-  if File.writable?(path) || !File.exists?(path)
-    $stderr.puts "Saving #{path}" if $settings.verbose
-    begin
-      backup_path = "#{path}~"
-      backup_path = "#{backup_path}~" while File.exists? backup_path
-      FileUtils.cp(path, backup_path, :preserve => true) if File.exists?(path)
-      open(path, 'wb') { |file| file << data }
-      File.unlink(backup_path) if File.exist? backup_path
-    rescue
-      # TODO We probably want some way to notify the server app that the save failed
-      $stderr.puts "Save failed! #{$!}" if $settings.verbose
+  def handle_save(socket, variables, data)
+    path = variables["token"]
+    if File.writable?(path) || !File.exists?(path)
+      $stderr.puts "Saving #{path}" if $settings.verbose
+      begin
+        backup_path = "#{path}~"
+        backup_path = "#{backup_path}~" while File.exists? backup_path
+        FileUtils.cp(path, backup_path, :preserve => true) if File.exists?(path)
+        open(path, 'wb') { |file| file << data }
+        File.unlink(backup_path) if File.exist? backup_path
+      rescue
+        # TODO We probably want some way to notify the server app that the save failed
+        $stderr.puts "Save failed! #{$!}" if $settings.verbose
+      end
+    else
+      $stderr.puts "Skipping save, file not writable." if $settings.verbose
     end
-  else
-    $stderr.puts "Skipping save, file not writable." if $settings.verbose
   end
-end
 
-def handle_close(socket, variables, data)
-  path = variables["token"]
-  $stderr.puts "Closed #{path}" if $settings.verbose
-end
-
-def handle_cmd(socket)
-  cmd = socket.readline.chomp
-
-  variables = {}
-  data = ""
-
-  while line = socket.readline.chomp
-    break if line.empty?
-    name, value     = line.split(': ', 2)
-    variables[name] = value
-    data << socket.read(value.to_i) if name == "data"
+  def handle_close(socket, variables, data)
+    path = variables["token"]
+    $stderr.puts "Closed #{path}" if $settings.verbose
   end
-  variables.delete("data")
 
-  case cmd
-  when "save"   then handle_save(socket, variables, data)
-  when "close"  then handle_close(socket, variables, data)
-  else          abort "Received unknown command “#{cmd}”, exiting."
+  def handle_cmd(socket)
+    cmd = socket.readline.chomp
+
+    variables = {}
+    data = ""
+
+    while line = socket.readline.chomp
+      break if line.empty?
+      name, value     = line.split(': ', 2)
+      variables[name] = value
+      data << socket.read(value.to_i) if name == "data"
+    end
+    variables.delete("data")
+
+    case cmd
+    when "save"   then handle_save(socket, variables, data)
+    when "close"  then handle_close(socket, variables, data)
+    else          abort "Received unknown command “#{cmd}”, exiting."
+    end
   end
-end
 
-def connect_and_handle_cmds(host, port, cmds)
-  socket = TCPSocket.new(host, port)
-  server_info = socket.readline.chomp
-  $stderr.puts "Connect: ‘#{server_info}’" if $settings.verbose
+  def connect_and_handle_cmds(host, port, cmds)
+    socket = TCPSocket.new(host, port)
+    server_info = socket.readline.chomp
+    $stderr.puts "Connect: ‘#{server_info}’" if $settings.verbose
 
-  cmds.each { |cmd| cmd.send(socket) }
+    cmds.each { |cmd| cmd.send(socket) }
 
-  socket.puts "."
-  handle_cmd(socket) while !socket.eof?
-  socket.close
-  $stderr.puts "Done" if $settings.verbose
+    socket.puts "."
+    handle_cmd(socket) while !socket.eof?
+    socket.close
+    $stderr.puts "Done" if $settings.verbose
+  end
 end
 
 ## MAIN
 
-$settings = Settings.new
+if __FILE__ == $PROGRAM_NAME
+  $settings = Rmate::Settings.new
 
-## Parse arguments.
-cmds = []
-ARGV.each_index do |idx|
-  path = ARGV[idx]
-  abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exists? path
-  $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $settings.verbose
-  cmd                 = Command.new("open")
-  cmd['display-name'] = "#{Socket.gethostname}:#{path}"
-  cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
-  cmd['real-path']    = File.expand_path(path)
-  cmd['data-on-save'] = true
-  cmd['re-activate']  = true
-  cmd['token']        = path
-  cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
-  cmd['file-type']    = $settings.types[idx] if $settings.types.length > idx
-  cmd.read_file(path)               if File.exist? path
-  cmd['data']         = "0"     unless File.exist? path
-  cmds << cmd
-end
-
-unless $settings.wait
-  pid = fork do
-    connect_and_handle_cmds($settings.host, $settings.port, cmds)
+  ## Parse arguments.
+  cmds = []
+  ARGV.each_index do |idx|
+    path = ARGV[idx]
+    abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exists? path
+    $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $settings.verbose
+    cmd                 = Rmate::Command.new("open")
+    cmd['display-name'] = "#{Socket.gethostname}:#{path}"
+    cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
+    cmd['real-path']    = File.expand_path(path)
+    cmd['data-on-save'] = true
+    cmd['re-activate']  = true
+    cmd['token']        = path
+    cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
+    cmd['file-type']    = $settings.types[idx] if $settings.types.length > idx
+    cmd.read_file(path)               if File.exist? path
+    cmd['data']         = "0"     unless File.exist? path
+    cmds << cmd
   end
-  Process.detach(pid)
-else
-  connect_and_handle_cmds($settings.host, $settings.port, cmds)
+
+  unless $settings.wait
+    pid = fork do
+      Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
+    end
+    Process.detach(pid)
+  else
+    Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
+  end
 end

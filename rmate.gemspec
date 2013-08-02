@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/rmate/version', __FILE__)
+require File.expand_path('lib/rmate', File.dirname(__FILE__))
 
 Gem::Specification.new do |gem|
   gem.name          = 'rmate'
@@ -13,5 +13,4 @@ Gem::Specification.new do |gem|
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")
   gem.authors       = `git log --pretty="format:%an"|sort -u`.split("\n")
-  gem.require_paths = ['lib']
 end
