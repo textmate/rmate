@@ -171,6 +171,7 @@ if __FILE__ == $PROGRAM_NAME
   cmds = []
   ARGV.each_index do |idx|
     path = ARGV[idx]
+    abort "'#{path}' is a directory! Aborting." if File.directory? path
     abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exists? path
     $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exists? path and $settings.verbose
     cmd                 = Rmate::Command.new("open")
