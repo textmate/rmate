@@ -43,3 +43,6 @@ For more info see this [blog post about rmate](http://blog.macromates.com/2011/m
 # Ports
 
 - [Bash](https://github.com/aurora/rmate) by Harald Lapp
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/textmate/rmate/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
