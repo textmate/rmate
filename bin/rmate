@@ -169,46 +169,44 @@ end
 
 ## MAIN
 
-if __FILE__ == $PROGRAM_NAME
-  $settings = Rmate::Settings.new
+$settings = Rmate::Settings.new
 
-  ## Parse arguments.
-  cmds = []
+## Parse arguments.
+cmds = []
 
-  ARGV << '-' if ARGV.empty? and (!$stdin.tty? or $settings.wait)
+ARGV << '-' if ARGV.empty? and (!$stdin.tty? or $settings.wait)
 
-  ARGV.each_index do |idx|
-    path = ARGV[idx]
-    if path == '-'
-      $stderr.puts "Reading from stdin, press ^D to stop" if $stdin.tty?
-    else
-      abort "'#{path}' is a directory! Aborting." if File.directory? path
-      abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exist? path
-      $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exist? path and $settings.verbose
-    end
-    cmd                 = Rmate::Command.new("open")
-    cmd['display-name'] = "#{Socket.gethostname}:untitled (stdin)" if path == '-'
-    cmd['display-name'] = "#{Socket.gethostname}:#{path}" unless path == '-'
-    cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
-    cmd['real-path']    = File.expand_path(path) unless path == '-'
-    cmd['data-on-save'] = true
-    cmd['re-activate']  = true
-    cmd['token']        = path
-    cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
-    cmd['file-type']    = 'txt'                if path == '-'
-    cmd['file-type']    = $settings.types[idx] if $settings.types.length > idx
-    cmd.read_stdin                    if path == '-'
-    cmd.read_file(path)               if path != '-' and File.exist? path
-    cmd['data']         = "0"     unless path == '-' or  File.exist? path
-    cmds << cmd
-  end
-
-  unless $settings.wait
-    pid = fork do
-      Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
-    end
-    Process.detach(pid)
+ARGV.each_index do |idx|
+  path = ARGV[idx]
+  if path == '-'
+    $stderr.puts "Reading from stdin, press ^D to stop" if $stdin.tty?
   else
+    abort "'#{path}' is a directory! Aborting." if File.directory? path
+    abort "File #{path} is not writable! Use -f/--force to open anyway." unless $settings.force or File.writable? path or not File.exist? path
+    $stderr.puts "File #{path} is not writable. Opening anyway." if not File.writable? path and File.exist? path and $settings.verbose
+  end
+  cmd                 = Rmate::Command.new("open")
+  cmd['display-name'] = "#{Socket.gethostname}:untitled (stdin)" if path == '-'
+  cmd['display-name'] = "#{Socket.gethostname}:#{path}" unless path == '-'
+  cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
+  cmd['real-path']    = File.expand_path(path) unless path == '-'
+  cmd['data-on-save'] = true
+  cmd['re-activate']  = true
+  cmd['token']        = path
+  cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
+  cmd['file-type']    = 'txt'                if path == '-'
+  cmd['file-type']    = $settings.types[idx] if $settings.types.length > idx
+  cmd.read_stdin                    if path == '-'
+  cmd.read_file(path)               if path != '-' and File.exist? path
+  cmd['data']         = "0"     unless path == '-' or  File.exist? path
+  cmds << cmd
+end
+
+unless $settings.wait
+  pid = fork do
     Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
   end
+  Process.detach(pid)
+else
+  Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
 end
