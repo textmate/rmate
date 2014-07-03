@@ -5,6 +5,7 @@ $VERBOSE = true                         # -w
 $KCODE   = "U" if RUBY_VERSION < "1.9"  # -KU
 
 require 'optparse'
+require 'rbconfig'
 require 'socket'
 require 'tempfile'
 require 'yaml'
@@ -203,9 +204,8 @@ ARGV.each_index do |idx|
 end
 
 unless $settings.wait
-  pid = fork do
-    Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
-  end
+  command = [ RbConfig.ruby, __FILE__, "-w" ] + ARGV
+  pid = Process.spawn(*command)
   Process.detach(pid)
 else
   Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
