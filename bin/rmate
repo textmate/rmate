@@ -16,7 +16,7 @@ module Rmate
   VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
 
   class Settings
-    attr_accessor :host, :port, :wait, :force, :verbose, :lines, :names, :types
+    attr_accessor :host, :port, :unixsocket, :wait, :force, :verbose, :lines, :names, :types
 
     def initialize
       @host, @port = 'localhost', 52698
@@ -24,14 +24,16 @@ module Rmate
       @wait    = false
       @force   = false
       @verbose = false
+      @unixsocket  = nil
       @lines   = []
       @names   = []
       @types   = []
 
       read_disk_settings
 
-      @host = ENV['RMATE_HOST'].to_s if ENV.has_key? 'RMATE_HOST'
-      @port = ENV['RMATE_PORT'].to_i if ENV.has_key? 'RMATE_PORT'
+      @host       = ENV['RMATE_HOST'].to_s       if ENV.has_key? 'RMATE_HOST'
+      @port       = ENV['RMATE_PORT'].to_i       if ENV.has_key? 'RMATE_PORT'
+      @unixsocket = ENV['RMATE_UNIXSOCKET'].to_i if ENV.has_key? 'RMATE_UNIXSOCKET'
 
       parse_cli_options
 
@@ -43,22 +45,24 @@ module Rmate
         file = File.expand_path current_file
         if File.exist? file
           params = YAML::load(File.open(file))
-          @host = params["host"] unless params["host"].nil?
-          @port = params["port"] unless params["port"].nil?
+          @host       = params["host"] unless params["host"].nil?
+          @port       = params["port"] unless params["port"].nil?
+          @unixsocket = params["unixsocket"] unless params["unixsocket"].nil?
         end
       end
     end
 
     def parse_cli_options
       OptionParser.new do |o|
-        o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host    = v          }
-        o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port    = v          }
-        o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait    = v          }
-        o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines <<= v          }
-        o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names <<= v          }
-        o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types <<= v          }
-        o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force   = v          }
-        o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose = v          }
+        o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host       = v       }
+        o.on('-s',      '--unixsocket=name', "Connect to UNIX socket.", "Takes precedence over host/port")                           { |v| @unixsocket = v       }
+        o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port       = v       }
+        o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait       = v       }
+        o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines      <<= v     }
+        o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names      <<= v     }
+        o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types      <<= v     }
+        o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force      = v       }
+        o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose    = v       }
         o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
         o.on_tail(      '--version',         'Show version.')                                                                        { puts VERSION_STRING; exit }
         o.parse!
@@ -153,8 +157,15 @@ module Rmate
     end
   end
 
-  def connect_and_handle_cmds(host, port, cmds)
-    socket = TCPSocket.new(host, port)
+  def connect_and_handle_cmds(host, port, unixsocketpath, cmds)
+    socket = nil
+    if unixsocketpath.nil?
+      # socket is now ready to communicate.
+      socket = TCPSocket.new(host, port)
+    else
+      $stderr.puts "Using UNIX socket to connect: ‘#{unixsocketpath}’" if $settings.verbose
+      socket = UNIXSocket.new(unixsocketpath)
+    end
     server_info = socket.readline.chomp
     $stderr.puts "Connect: ‘#{server_info}’" if $settings.verbose
 
@@ -204,9 +215,9 @@ end
 
 unless $settings.wait
   pid = fork do
-    Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
+    Rmate::connect_and_handle_cmds($settings.host, $settings.port, $settings.unixsocket, cmds)
   end
   Process.detach(pid)
 else
-  Rmate::connect_and_handle_cmds($settings.host, $settings.port, cmds)
+  Rmate::connect_and_handle_cmds($settings.host, $settings.port, $settings.unixsocket, cmds)
 end
