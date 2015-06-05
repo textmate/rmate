@@ -4,6 +4,10 @@ If you wish to activate TextMate from an ssh session you can do so by copying th
 
 	ssh -R 52698:localhost:52698 user@example.org
 
+or, if using unix sockets (available with OpenSSH v6.7 and above):
+
+    ssh -R /path/to/rmate.sock:localhost:52698 user@example.org
+
 # Install
 
 ## Rubygems
@@ -33,10 +37,11 @@ If `~/bin` is not already in your `PATH` then you may want to add something like
 
 Call `rmate --help` for a list of options. Default options can be set in `/etc/rmate.rc` or `~/.rmate.rc`, e.g.:
 
-	host: auto  # prefer host from SSH_CONNECTION over localhost
+	host: auto                      # prefer host from SSH_CONNECTION over localhost
 	port: 52698
+	unixsocket: ~/.rmate.socket   # Use this socket file if it exists
 
-You can also set the `RMATE_HOST` and `RMATE_PORT` environment variables.
+You can also set the `RMATE_HOST`, `RMATE_PORT` and `RMATE_UNIXSOCKET` environment variables.
 
 For more info see this [blog post about rmate](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog » mate and rmate").
 
