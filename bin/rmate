@@ -19,12 +19,11 @@ module Rmate
     attr_accessor :host, :port, :unixsocket, :wait, :force, :verbose, :lines, :names, :types
 
     def initialize
-      @host, @port = 'localhost', 52698
+      @host, @port, @unixsocket = 'localhost', 52698, '~/.rmate.socket'
 
       @wait    = false
       @force   = false
       @verbose = false
-      @unixsocket  = nil
       @lines   = []
       @names   = []
       @types   = []
@@ -55,7 +54,8 @@ module Rmate
     def parse_cli_options
       OptionParser.new do |o|
         o.on(           '--host=name',       "Connect to host.", "Use 'auto' to detect the host from SSH.", "Defaults to #{@host}.") { |v| @host       = v       }
-        o.on('-s',      '--unixsocket=name', "Connect to UNIX socket.", "Takes precedence over host/port")                           { |v| @unixsocket = v       }
+        o.on('-s',      '--unixsocket=name', "UNIX socket path.", "Takes precedence over host/port if the file exists", \
+                                                                  "Default #{@unixsocket}")                                          { |v| @unixsocket = v       }
         o.on('-p',      '--port=#', Integer, "Port number to use for connection.", "Defaults to #{@port}.")                          { |v| @port       = v       }
         o.on('-w',      '--[no-]wait',       'Wait for file to be closed by TextMate.')                                              { |v| @wait       = v       }
         o.on('-l',      '--line [NUMBER]',   'Place caret on line [NUMBER] after loading file.')                                     { |v| @lines      <<= v     }
@@ -159,7 +159,9 @@ module Rmate
 
   def connect_and_handle_cmds(host, port, unixsocketpath, cmds)
     socket = nil
-    if unixsocketpath.nil?
+    unixsocketpath = File.expand_path(unixsocketpath) unless unixsocketpath.nil?
+    $stderr.puts "Looking at #{unixsocketpath}"
+    if unixsocketpath.nil? || !File.exist?(unixsocketpath)
       # socket is now ready to communicate.
       socket = TCPSocket.new(host, port)
     else

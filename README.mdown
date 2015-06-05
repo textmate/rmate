@@ -37,9 +37,9 @@ If `~/bin` is not already in your `PATH` then you may want to add something like
 
 Call `rmate --help` for a list of options. Default options can be set in `/etc/rmate.rc` or `~/.rmate.rc`, e.g.:
 
-	host: auto        # prefer host from SSH_CONNECTION over localhost
+	host: auto                      # prefer host from SSH_CONNECTION over localhost
 	port: 52698
-	unixsocket: nil   # Do not use a UNIX socket by default
+	unixsocket: ~/.rmate.socket   # Use this socket file if it exists
 
 You can also set the `RMATE_HOST`, `RMATE_PORT` and `RMATE_UNIXSOCKET` environment variables.
 
