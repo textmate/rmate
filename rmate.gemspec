@@ -9,6 +9,7 @@ Gem::Specification.new do |gem|
   gem.summary       = %q{Edit files from anywhere in TextMate 2 on your local Mac.}
   gem.email         = ['rmate@textmate.org']
   gem.homepage      = 'https://github.com/textmate/rmate/'
+  gem.license       = 'MIT'
 
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")
