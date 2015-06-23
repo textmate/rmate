@@ -11,8 +11,8 @@ require 'yaml'
 require 'fileutils'
 
 module Rmate
-  DATE           = "2014-02-06"
-  VERSION        = "1.5.7"
+  DATE           = "2015-06-23"
+  VERSION        = "1.5.8"
   VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
 
   class Settings
