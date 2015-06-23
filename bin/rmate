@@ -161,8 +161,12 @@ module Rmate
     socket = nil
     unixsocketpath = File.expand_path(unixsocketpath) unless unixsocketpath.nil?
     if unixsocketpath.nil? || !File.exist?(unixsocketpath)
-      # socket is now ready to communicate.
-      socket = TCPSocket.new(host, port)
+      $stderr.puts "Using TCP socket to connect: ‘#{host}:#{port}’" if $settings.verbose
+      begin
+        socket = TCPSocket.new(host, port)
+      rescue Exception => e
+        abort "Error connecting to ‘#{host}:#{port}’: #{e.message}"
+      end
     else
       $stderr.puts "Using UNIX socket to connect: ‘#{unixsocketpath}’" if $settings.verbose
       socket = UNIXSocket.new(unixsocketpath)
