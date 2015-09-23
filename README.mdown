@@ -49,3 +49,4 @@ For more info see this [blog post about rmate](http://blog.macromates.com/2011/m
 
 - [Bash](https://github.com/aurora/rmate) by Harald Lapp
 - [Python](https://github.com/sclukey/rmate-python) by Steven Clukey
+- [Perl](https://github.com/davidolrik/rmate-perl) by David Jack Wange Olrik
