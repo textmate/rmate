@@ -30,7 +30,7 @@ Installing into `~/bin` can be done using these two lines:
 If `~/bin` is not already in your `PATH` then you may want to add something like this to your shell startup file (e.g. `~/.bashrc`):
 
 	echo "export PATH="\$PATH:\$HOME/bin"" >> .bashrc
-        source .bashrc
+	source .bashrc
 # Usage
 
 	rmate [options] file
