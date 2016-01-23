@@ -40,7 +40,7 @@ module Rmate
     end
 
     def read_disk_settings
-      [ "/etc/rmate.rc", "~/.rmate.rc"].each do |current_file|
+      [ "/etc/rmate.rc", "/usr/local/etc/rmate.rc", "~/.rmate.rc"].each do |current_file|
         file = File.expand_path current_file
         if File.exist? file
           params = YAML::load(File.open(file))
