@@ -42,6 +42,9 @@ Call `rmate --help` for a list of options. Default options can be set in `/etc/r
 	unixsocket: ~/.rmate.socket  # Use this socket file if it exists
 
 You can also set the `RMATE_HOST`, `RMATE_PORT` and `RMATE_UNIXSOCKET` environment variables.
+The same environment variables can be prefixed by `LC_` (e.g. `LC_RMATE_HOST`) so that they can
+through stricter SSH server configurations (`LC_*` variables take precedence over other environment
+variables).
 
 For more info see this [blog post about rmate](http://blog.macromates.com/2011/mate-and-rmate/ "TextMate Blog » mate and rmate").
 
