@@ -93,7 +93,7 @@ module Rmate
 
      def read_stdin
        @data = $stdin.read
-       @size = @data.size
+       @size = @data.bytesize
      end
 
      def send(socket)
