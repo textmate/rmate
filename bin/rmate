@@ -34,6 +34,11 @@ module Rmate
       @port       = ENV['RMATE_PORT'].to_i       if ENV.has_key? 'RMATE_PORT'
       @unixsocket = ENV['RMATE_UNIXSOCKET'].to_s if ENV.has_key? 'RMATE_UNIXSOCKET'
 
+      # Use LC_* variables that can be set more easily with ssh
+      @host       = ENV['LC_RMATE_HOST'].to_s       if ENV.has_key? 'LC_RMATE_HOST'
+      @port       = ENV['LC_RMATE_PORT'].to_i       if ENV.has_key? 'LC_RMATE_PORT'
+      @unixsocket = ENV['LC_RMATE_UNIXSOCKET'].to_s if ENV.has_key? 'LC_RMATE_UNIXSOCKET'
+
       parse_cli_options
 
       @host = parse_ssh_connection if @host == 'auto'
