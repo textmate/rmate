@@ -21,13 +21,13 @@ module Rmate
     def initialize
       @host, @port, @unixsocket = 'localhost', 52698, '~/.rmate.socket'
 
-      @wait    = false
-      @force   = false
-      @verbose = false
+      @wait       = false
+      @force      = false
+      @verbose    = false
       @reactivate = true
-      @lines   = []
-      @names   = []
-      @types   = []
+      @lines      = []
+      @names      = []
+      @types      = []
 
       read_disk_settings
 
