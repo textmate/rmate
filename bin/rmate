@@ -11,22 +11,23 @@ require 'yaml'
 require 'fileutils'
 
 module Rmate
-  DATE           = "2017-02-10"
-  VERSION        = "1.5.9"
+  DATE           = "2021-04-26"
+  VERSION        = "1.5.10"
   VERSION_STRING = "rmate version #{Rmate::VERSION} (#{Rmate::DATE})"
 
   class Settings
-    attr_accessor :host, :port, :unixsocket, :wait, :force, :verbose, :lines, :names, :types
+    attr_accessor :host, :port, :unixsocket, :wait, :force, :verbose, :lines, :names, :types, :reactivate
 
     def initialize
       @host, @port, @unixsocket = 'localhost', 52698, '~/.rmate.socket'
 
-      @wait    = false
-      @force   = false
-      @verbose = false
-      @lines   = []
-      @names   = []
-      @types   = []
+      @wait       = false
+      @force      = false
+      @verbose    = false
+      @reactivate = true
+      @lines      = []
+      @names      = []
+      @types      = []
 
       read_disk_settings
 
@@ -62,6 +63,7 @@ module Rmate
         o.on('-m',      '--name [NAME]',     'The display name shown in TextMate.')                                                  { |v| @names      <<= v     }
         o.on('-t',      '--type [TYPE]',     'Treat file as having [TYPE].')                                                         { |v| @types      <<= v     }
         o.on('-f',      '--force',           'Open even if the file is not writable.')                                               { |v| @force      = v       }
+        o.on('-k',      '--[no-]keep-focus', 'Have TextMate retain window focus after file is closed.')                              { |v| @reactivate = !v      }
         o.on('-v',      '--verbose',         'Verbose logging messages.')                                                            { |v| @verbose    = v       }
         o.on_tail('-h', '--help',            'Show this message.')                                                                   { puts o; exit              }
         o.on_tail(      '--version',         'Show version.')                                                                        { puts VERSION_STRING; exit }
@@ -207,7 +209,7 @@ ARGV.each_index do |idx|
   cmd['display-name'] = $settings.names[idx] if $settings.names.length > idx
   cmd['real-path']    = File.expand_path(path) unless path == '-'
   cmd['data-on-save'] = true
-  cmd['re-activate']  = true
+  cmd['re-activate']  = $settings.reactivate
   cmd['token']        = path
   cmd['selection']    = $settings.lines[idx] if $settings.lines.length > idx
   cmd['file-type']    = 'txt'                if path == '-'
