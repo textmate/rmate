@@ -13,6 +13,10 @@ or, if using unix sockets (available with OpenSSH v6.7 and above):
 
 	ssh -R /home/user/.rmate.socket:localhost:52698 user@example.org
 
+# Requirements
+
+- [Ruby](https://www.ruby-lang.org/en/documentation/installation)
+
 # Install
 
 ## Rubygems
